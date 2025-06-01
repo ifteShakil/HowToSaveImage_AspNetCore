@@ -1,0 +1,279 @@
+<EditForm Model="Model" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <MudCard>
+        <MudCardContent>
+
+            <MudGrid Spacing="3">
+                <!-- Left Side: Form Fields -->
+                <MudItem xs="12" md="6">
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Label="Passport Number" @bind-Value="Model.PassportNo" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker Label="Issue Date" @bind-Date="Model.DateOfIssue" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker Label="Expiry Date" @bind-Date="Model.DateOfExpiry" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Label="First Name" @bind-Value="Model.FirstName" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Label="Middle Name" @bind-Value="Model.MiddleName" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Label="Last Name" @bind-Value="Model.LastName" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudDatePicker Label="DOB"
+                                           @bind-Value="Model.DateOfBirth" ShowToolbar="false" />
+
+                        </MudItem>
+
+
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="Gender" Label="Gender" @bind-Value="Model.GenderType">
+                                <MudSelectItem T="Gender" Value="Gender.Male">Male</MudSelectItem>
+                                <MudSelectItem T="Gender" Value="Gender.Female">Female</MudSelectItem>
+                                <MudSelectItem T="Gender" Value="Gender.Other">Other</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Label="Place Of Birth" @bind-Value="Model.PlaceOfBirth" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Label="Father Name" @bind-Value="Model.FatherName" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Label="Mother Name" @bind-Value="Model.MotherName" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField Label="Spouse Name" @bind-Value="Model.SpouseName" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            @* <MudCheckBox Label="Active Status" Class="mt-3" @bind-Checked="Model.IsActive" For="(() => Model.IsActive)" /> *@
+                            @* <MudCheckBox Label="Active Status" @bind-Checked="Model.IsActive" /> *@
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+
+                <!-- Right Side: Image Upload -->
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4" Elevation="1">
+                        <MudText Typo="Typo.h6" Class="mb-2">Upload Image</MudText>
+                        <div class="d-flex flex-column" style="height: 100%">
+                            <div class="img-wrapper flex-grow-1 d-flex justify-content-center align-items-center border rounded mb-2" style="height: 300px; overflow: hidden;">
+                                @* <div class="img-wrapper flex-grow-1"> *@
+                                @if (!string.IsNullOrWhiteSpace(_imageUrl))
+                                {
+                                    <img src="@_imageUrl" class="img-fluid h-100 w-auto" style="object-fit: contain;" />
+                                    @* <img src="@_imageUrl" class="img-fluid" /> *@
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.subtitle2" Class="text-muted">No image selected</MudText>
+                                }
+
+                            </div>
+                            <InputFile OnChange="OnImageSelectAsync" class="form-control mb-2" accept=".png,.jpg,.jpeg" />
+                            @if (!string.IsNullOrWhiteSpace(_errorMessage))
+                            {
+                                <MudAlert Severity="Severity.Error" Elevation="0" Dense="true">
+                                    @_errorMessage
+                                </MudAlert>
+                            }
+                            @* <div class="mb-3">
+                                <label class="form-label">Image: </label>
+                                <InputFile OnChange="OnImageSelectAsync" class="form-control" />
+                            </div> *@
+                        </div>
+
+
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+
+        <MudCardActions Style="text-align:right">
+            <MudSpacer />
+            <MudButton Color="Color.Secondary" OnClick="HandleCancel" Variant="MudBlazor.Variant.Text">CANCEL</MudButton>
+            <MudButton ButtonType="MudBlazor.ButtonType.Submit" Color="Color.Primary" Variant="MudBlazor.Variant.Filled">DONE</MudButton>
+        </MudCardActions>
+    </MudCard>
+</EditForm>
+
+
+
+
+@code {
+
+
+    CM_Passport Model = new CM_Passport();
+
+protected override async Task OnInitializedAsync()
+{
+   _imageUrl = Model.PassportImage;
+
+}
+    #region Create and Update
+
+
+    private async Task Save()
+    {
+        if (Model.Id == 0)
+        {
+            // Create
+            var isNameExists = await _passportService.CheckName(Model.PassportNo);
+            if (isNameExists == true)
+            {
+                Snackbar.Add("Name ID already exists.", Severity.Info);
+            }
+            else
+            {
+                var result = await _passportService.Save(Model);
+
+                if (result > 0)
+                {
+                    Snackbar.Add("Save Successfully.", Severity.Success);
+                    await LoadData();
+                    visible = false;
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Invalid.", Severity.Error);
+
+                }
+            }
+        }
+        else
+        {
+            // Update
+            var isCheck = await _passportService.CheckNameId(Model.PassportNo);
+            if (isCheck == Model.Id || isCheck == 0)
+            {
+                bool result = false;
+                result = await _passportService.Update(Model);
+
+                if (result == true)
+                {
+                    Snackbar.Add("Update Successfully.", Severity.Success);
+                    await LoadData();
+                    StateHasChanged();
+                    visible = false;
+                }
+                else
+                {
+                    Snackbar.Add("Invalid.", Severity.Error);
+                    StateHasChanged();
+                }
+            }
+            else
+            {
+                Snackbar.Add("Passport already exists.", Severity.Info);
+            }
+        }
+    }
+
+
+
+    // image upload
+    private string? _imageUrl = null;
+    private IBrowserFile? _image;
+    private string? _errorMessage = null;
+
+    private const long MaxImageSizeInBytes = 1024 * 1024 * 2; // 2MB max size
+
+
+    private async Task OnImageSelectAsync(InputFileChangeEventArgs e)
+    {
+        _errorMessage = null;
+
+        if (e.File != null)
+        {
+            var allowedExtensions = new[] { ".png", ".jpg", ".jpeg" };
+            var extension = Path.GetExtension(e.File.Name).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+            {
+                _errorMessage = "Only PNG and JPG image formats are allowed.";
+                _imageUrl = null;
+                return;
+            }
+
+            if (e.File.Size > MaxImageSizeInBytes)
+            {
+                _errorMessage = "Image size cannot exceed 2MB.";
+                _imageUrl = null;
+                return;
+            }
+
+            _image = e.File;
+            using var imageStream = _image.OpenReadStream(MaxImageSizeInBytes);
+            using var ms = new MemoryStream();
+            await imageStream.CopyToAsync(ms);
+
+            var base64ImageData = Convert.ToBase64String(ms.ToArray());
+            //var extension = Path.GetExtension(e.File.Name)[1..];
+            var imageFormat = extension.TrimStart('.');
+
+            _imageUrl = $"data:image/{imageFormat};base64,{base64ImageData}";
+        }
+
+
+    }
+
+
+    private async Task<string?> SaveImageAsync()
+    {
+        if (_image == null) return null;
+
+        var extension = Path.GetExtension(_image.Name);
+        var imageName = $"passport-img-{Guid.NewGuid()}{extension}";
+
+        var folderPath = Path.Combine(WebHostEnvironment.WebRootPath, "images", "PassportImage");
+        Directory.CreateDirectory(folderPath);
+
+        var fullFilePath = Path.Combine(folderPath, imageName);
+
+        try
+        {
+            await using FileStream fs = new(fullFilePath, FileMode.Create);
+            using var imageStream = _image.OpenReadStream(MaxImageSizeInBytes);
+            await imageStream.CopyToAsync(fs);
+            return $"/images/PassportImage/{imageName}";
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error in saving image.", Severity.Info);
+            
+            return null;
+        }
+    }
+
+    private void DeleteImage(string imageUrl)
+    {
+        var imagePath = imageUrl.Replace("/", "\\");
+        var fullFilePath = Path.Combine(WebHostEnvironment.WebRootPath, imagePath);
+        if (File.Exists(fullFilePath))
+        {
+            try
+            {
+                File.Delete(fullFilePath);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add("Error in deleting image.", Severity.Info);
+            }
+        }
+    }
+
+
+    #endregion
+
+
+}
+
